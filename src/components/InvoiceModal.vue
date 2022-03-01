@@ -1,6 +1,7 @@
 <template>
     <div @click="checkClick" ref="invoiceWrap" class="invoice-wrap flex flex-column">
         <form @submit.prevent="submitForm" class="invoice-content">
+            <Loading v-show="loading"></Loading>
             <h1 v-if="!editInvoice">New Invoice</h1>
             <h1 v-else>Edit Invoice</h1>
     
@@ -122,14 +123,21 @@
 
 <script>
 import { db } from "../firebase/db";
+import Loading from '../components/Loading';
 import { mapActions, mapMutations, mapState } from "vuex";
 import { uid } from "uid";
 
 export default {
     name: "invoiceModal",
+
+    components: {
+        Loading,
+    },
+
     data() {
         return {
             dateOptions: { year: "numeric", month: "short", day: "numeric" },
+            loading: null,
             billerStreetAddress: null,
             billerCity: null,
             billerZipCode: null,
@@ -186,15 +194,9 @@ export default {
         }
     },
     methods: {
-        ...mapMutations(["TOGGLE_INVOICE", "TOGGLE_MODAL", "TOGGLE_EDIT_INVOICE"]),
+        ...mapMutations(["TOGGLE_INVOICE"]),
 
         ...mapActions(["UPDATE_INVOICE", "GET_INVOICES"]),
-
-        checkClick(e) {
-            if (e.target === this.$refs.invoiceWrap) {
-                this.TOGGLE_MODAL();
-            }
-        },
 
         closeInvoice() {
             this.TOGGLE_INVOICE();
@@ -238,9 +240,11 @@ export default {
                 return;
             }
 
+            this.loading = true;
+
             this.calInvoiceTotal();
 
-            const database = db.firestore().collection("invoices");
+            const database = db.collection("invoices").doc();
 
             await database.set({
                 invoiceId: uid(6),
@@ -266,6 +270,8 @@ export default {
                 invoiceTotal: this.invoiceTotal,
                 invoicePaid: null,
             });
+
+            this.loading = false;
         
             this.TOGGLE_INVOICE();
         },
