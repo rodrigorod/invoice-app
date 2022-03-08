@@ -5,7 +5,7 @@
 npm install
 ```
 
-# Add env variables
+## Add env variables
 
 ```
 cp .env.dist .env
