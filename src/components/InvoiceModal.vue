@@ -20,7 +20,7 @@
                     <div class="input flex flex-column">
                         <label for="billerZipCode">Zip Code</label>
                         <input required type="text" id="billerZipCode" v-model="billerZipCode" />
-                    </div>q
+                    </div>
                     <div class="input flex flex-column">
                         <label for="billerCountry">Country</label>
                         <input required type="text" id="billerCountry" v-model="billerCountry" />
@@ -124,7 +124,7 @@
 <script>
 import { db } from "../firebase/db";
 import Loading from '../components/Loading';
-import { mapActions, mapMutations, mapState } from "vuex";
+import { mapMutations, mapState, mapActions } from "vuex";
 import { uid } from "uid";
 
 export default {
@@ -137,6 +137,7 @@ export default {
     data() {
         return {
             dateOptions: { year: "numeric", month: "short", day: "numeric" },
+            docId: null,
             loading: null,
             billerStreetAddress: null,
             billerCity: null,
@@ -194,9 +195,15 @@ export default {
         }
     },
     methods: {
-        ...mapMutations(["TOGGLE_INVOICE"]),
+        ...mapMutations(["TOGGLE_INVOICE", "TOGGLE_MODAL", "TOGGLE_EDIT_INVOICE"]),
 
-        ...mapActions(["UPDATE_INVOICE", "GET_INVOICES"]),
+        ...mapActions(['UPDATE_INVOICE', 'GET_INVOICES']),
+
+        checkClick(e) {
+            if (e.target === this.$refs.invoiceWrap) {
+                this.TOGGLE_MODAL();
+            }
+        },
 
         closeInvoice() {
             this.TOGGLE_INVOICE();
@@ -274,7 +281,49 @@ export default {
             this.loading = false;
         
             this.TOGGLE_INVOICE();
+            this.GET_INVOICES();
         },
+
+        async updateInvoice() {
+            if (this.invoiceItemList.length <= 0) {
+                alert("Please add at least one item to the invoice");
+                return;
+            }
+
+            this.loading = true;
+
+            this.calInvoiceTotal();
+
+            const database = db.collection("invoices").doc(this.docId);
+
+            await database.update({
+                billerStreetAddress: this.billerStreetAddress,
+                billerCity: this.billerCity,
+                billerZipCode: this.billerZipCode,
+                billerCountry: this.billerCountry,
+                clientName: this.clientName,
+                clientEmail: this.clientEmail,
+                clientStreetAddress: this.clientStreetAddress,
+                clientCity: this.clientCity,
+                clientZipCode: this.clientZipCode,
+                clientCountry: this.clientCountry,
+                paymentTerms: this.paymentTerms,
+                paymentDueDateUnix: this.paymentDueDateUnix,
+                paymentDueDate: this.paymentDueDate,
+                productDescription: this.productDescription,
+                invoiceItemList: this.invoiceItemList,
+                invoiceTotal: this.invoiceTotal,
+            });
+
+            this.loading = false;
+
+            const data = {
+                docId: this.docId,
+                routeId: this.$route.params.invoiceId
+            };
+        
+            this.UPDATE_INVOICE(data);
+        }, 
 
         submitForm() {
             if (this.editInvoice) {
